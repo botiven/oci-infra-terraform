@@ -21,6 +21,11 @@ resource "helm_release" "prometheus" {
   }
 
   set {
+    name  = "server.replicaCount"
+    value = "1"
+  }
+
+  set {
     name  = "alertmanager.enabled"
     value = "false"
   }
