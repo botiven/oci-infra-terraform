@@ -51,3 +51,5 @@ While this setup primarily uses free tier resources, there are some potential co
 
 5. After deployment:
    Kubernetes configuration file will be generated in the project root directory
+
+6. Traefik ingress will be using Cloudflare Tunnel and can be accessed at 			`https://kube.example.com` (replace `example.com` with domain configured in `terraform.tfvars`).
