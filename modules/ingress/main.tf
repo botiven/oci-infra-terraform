@@ -181,6 +181,15 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "tunnel" {
   }
 }
 
+resource "cloudflare_record" "tunnel_dns_record" {
+  zone_id = var.cloudflare_zone_id
+  name    = "kube"
+  content = cloudflare_zero_trust_tunnel_cloudflared.tunnel.cname
+  type    = "CNAME"
+  proxied = true
+  comment = "K8S Traefik Ingress"
+}
+
 resource "kubernetes_deployment" "cloudflared" {
   metadata {
     name      = "cloudflared"

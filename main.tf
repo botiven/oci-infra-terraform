@@ -12,12 +12,15 @@ module "ingress" {
   ingress_domain        = var.ingress_domain
   cloudflare_api_token  = var.cloudflare_api_token
   cloudflare_account_id = var.cloudflare_account_id
+  cloudflare_zone_id    = var.cloudflare_zone_id
 
   depends_on = [module.oci]
 }
 
 module "clickhouse" {
   source = "./modules/clickhouse"
+
+  ingress_domain = var.ingress_domain
 
   depends_on = [module.oci, module.ingress]
 }
