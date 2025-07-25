@@ -18,7 +18,7 @@ resource "helm_release" "traefik" {
   values = [
     yamlencode({
       deployment = {
-        replicas = 2
+        replicas = 1
       }
       rbac = {
         enabled = true
@@ -51,6 +51,16 @@ resource "helm_release" "traefik" {
         enabled = true
         type    = "ClusterIP"
       }
+      resources = {
+        requests = {
+          cpu    = "100m"
+          memory = "128Mi"
+        }
+        limits = {
+          cpu    = "500m"
+          memory = "512Mi"
+        }
+      }
     })
   ]
 }
@@ -75,6 +85,40 @@ resource "kubernetes_manifest" "traefik_dashboard_ingressroute" {
               kind = "TraefikService"
             }
           ]
+        }
+      ]
+    }
+  }
+
+  depends_on = [helm_release.traefik]
+}
+
+resource "kubernetes_manifest" "traefik_hpa" {
+  manifest = {
+    apiVersion = "autoscaling/v2"
+    kind       = "HorizontalPodAutoscaler"
+    metadata = {
+      name      = "traefik-hpa"
+      namespace = kubernetes_namespace.ingress.metadata[0].name
+    }
+    spec = {
+      scaleTargetRef = {
+        apiVersion = "apps/v1"
+        kind       = "Deployment"
+        name       = "traefik"
+      }
+      minReplicas = 1
+      maxReplicas = 5
+      metrics = [
+        {
+          type = "Resource"
+          resource = {
+            name = "cpu"
+            target = {
+              type               = "Utilization"
+              averageUtilization = 70
+            }
+          }
         }
       ]
     }
@@ -147,7 +191,7 @@ resource "kubernetes_deployment" "cloudflared" {
   }
 
   spec {
-    replicas = 2
+    replicas = 1
     selector {
       match_labels = {
         app = "cloudflared"
@@ -178,8 +222,53 @@ resource "kubernetes_deployment" "cloudflared" {
             "--token",
             cloudflare_zero_trust_tunnel_cloudflared.tunnel.tunnel_token
           ]
+
+          resources {
+            requests = {
+              cpu    = "50m"
+              memory = "64Mi"
+            }
+            limits = {
+              cpu    = "200m"
+              memory = "256Mi"
+            }
+          }
         }
       }
     }
   }
+}
+
+resource "kubernetes_manifest" "cloudflared_hpa" {
+  manifest = {
+    apiVersion = "autoscaling/v2"
+    kind       = "HorizontalPodAutoscaler"
+    metadata = {
+      name      = "cloudflared-hpa"
+      namespace = kubernetes_namespace.ingress.metadata[0].name
+    }
+    spec = {
+      scaleTargetRef = {
+        apiVersion = "apps/v1"
+        kind       = "Deployment"
+        name       = "cloudflared"
+      }
+      minReplicas = 1
+      maxReplicas = 3
+      metrics = [
+        {
+          type = "Resource"
+          resource = {
+            name = "cpu"
+            target = {
+              type               = "Utilization"
+              averageUtilization = 80
+            }
+          }
+        }
+      ]
+    }
+  }
+
+  depends_on = [kubernetes_deployment.cloudflared]
 }
