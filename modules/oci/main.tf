@@ -94,7 +94,7 @@ resource "oci_core_subnet" "vcn_public_subnet" {
 
 resource "oci_containerengine_cluster" "k8s_cluster" {
   compartment_id     = var.compartment_id
-  kubernetes_version = "v1.31.1"
+  kubernetes_version = "v1.33.1"
   name               = "k8s-cluster"
   vcn_id             = module.vcn.vcn_id
 
@@ -120,10 +120,10 @@ data "oci_identity_availability_domains" "ads" {
   compartment_id = var.compartment_id
 }
 
-resource "oci_containerengine_node_pool" "k8s_node_pool" {
+resource "oci_containerengine_node_pool" "k8s_node_pool_v2" {
   cluster_id         = oci_containerengine_cluster.k8s_cluster.id
   compartment_id     = var.compartment_id
-  kubernetes_version = "v1.30.1"
+  kubernetes_version = "v1.33.1"
   name               = "k8s-node-pool"
 
   node_shape = "VM.Standard.A1.Flex"
@@ -150,7 +150,7 @@ resource "oci_containerengine_node_pool" "k8s_node_pool" {
   }
 
   node_source_details {
-    image_id    = "ocid1.image.oc1.eu-frankfurt-1.aaaaaaaaxwbeqvni6wup4fzebsupo6yhtvza46eur2jsbxs47ndpkbcxokiq"
+    image_id    = "ocid1.image.oc1.eu-frankfurt-1.aaaaaaaa7puncwraadifoplwcinlknmzrz5wmh57rudb4so6zdoupvwwlsca"
     source_type = "image"
 
     boot_volume_size_in_gbs = 100
@@ -159,19 +159,6 @@ resource "oci_containerengine_node_pool" "k8s_node_pool" {
   initial_node_labels {
     key   = "name"
     value = "k8s-cluster"
-  }
-
-  node_metadata = {
-    user_data = base64encode(
-      <<-EOF
-      #!/bin/bash
-      mkdir /mnt/longhorn
-      chmod 777 /mnt/longhorn
-
-      curl --fail -H "Authorization: Bearer Oracle" -L0 http://169.254.169.254/opc/v2/instance/metadata/oke_init_script | base64 --decode >/var/run/oke-init.sh
-      bash /var/run/oke-init.sh
-      EOF
-    )
   }
 
   ssh_public_key = var.ssh_public_key
